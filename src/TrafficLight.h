@@ -5,6 +5,7 @@
 #include <deque>
 #include <condition_variable>
 #include "TrafficObject.h"
+#include <random>
 
 // forward declarations to avoid include cycle
 class Vehicle;
@@ -19,8 +20,13 @@ template <class T>
 class MessageQueue
 {
 public:
-
+std::dequeue _queue;
+void send(TrafficLightPhase &&phase);
+TrafficLightPhase receive();
 private:
+std::condition_variable cond;
+std::mutex mtx;
+
     
 };
 
@@ -42,7 +48,8 @@ public:
     void waitForGreen();
     void simulate();
     TrafficLightPhase getCurrentPhase();
-
+    void setCurrentPhase(TrafficLightPhase phase);
+    
     // typical behaviour methods
 
 private:
