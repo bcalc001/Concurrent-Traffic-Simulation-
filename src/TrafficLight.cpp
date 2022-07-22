@@ -15,7 +15,7 @@ T MessageQueue<T>::receive()
     // The received object should then be returned by the receive function.
      std::unique_lock<std::mutex> lock(mtx);     
     _condition.wait(lock,[this]{return !_queue.empty();});
-    auto rxMsg = _queue; 
+    TrafficLightPhase rxMsg = std::move(_queue.front()); 
     return rxMsg;
 }
 
@@ -41,7 +41,7 @@ void TrafficLight::waitForGreen()
     // Once it receives TrafficLightPhase::green, the method returns.
     while(true)
     {
-        auto currentPhase = msg_queue.receive();
+        TrafficLightPhase currentPhase = msg_queue.receive();
         if(currentPhase == green){return;}
     }
 }
@@ -58,7 +58,8 @@ void TrafficLight::setCurrentPhase(TrafficLightPhase phase)
 
 void TrafficLight::simulate()
 {
-    // FP.2b : Finally, the private method „cycleThroughPhases“ should be started in a thread when the public method „simulate“ is called. To do this, use the thread queue in the base class. 
+    // FP.2b : Finally, the private method „cycleThroughPhases“ should be started in a thread when the public method „simulate“ is called.
+    // To do this, use the thread queue in the base class. 
     threads.emplace_back(std::thread(&TrafficLight::cycleThroughPhases,this));
 }
 
@@ -79,20 +80,23 @@ void TrafficLight::cycleThroughPhases()
        
         if (_currentPhase == red)
         {
-            setCurrentPhase(green);
             std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::milliseconds(dist(gen))); 
+            setCurrentPhase(green);
+            std::cout<<"Green light"<<std::endl;
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1)); 
 
          if (_currentPhase == green)
         {
-            setCurrentPhase(red);
+           
+            
             std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::milliseconds(dist(gen))); 
-
+            setCurrentPhase(red);
+            std::cout<<"Red Light"<<std::endl;
         }
-        msg_queue.send(getCurrentPhase());
-
+        msg_queue.send(std::move(getCurrentPhase()));
+        std::cout<<"cycle through lights "<<std::endl;
     }
 }
 
