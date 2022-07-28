@@ -4,6 +4,7 @@
 #include <thread>
 #include <chrono>
 #include <mutex>
+#include <string>
 /* Implementation of class "MessageQueue" */
 
  
@@ -13,9 +14,13 @@ T MessageQueue<T>::receive()
     // FP.5a : The method receive should use std::unique_lock<std::mutex> and _condition.wait() 
     // to wait for and receive new messages and pull them from the queue using move semantics. 
     // The received object should then be returned by the receive function.
-     std::unique_lock<std::mutex> lock(mtx);     
+    std::cout<<"MessageQueue::receive()"<<std::endl;
+    std::unique_lock<std::mutex> lock(mtx);   
+
+    std::cout<<"empty queue= " << _queue.empty()<<std::endl;  
     _condition.wait(lock,[this]{return !_queue.empty();});
     TrafficLightPhase rxMsg = std::move(_queue.front()); 
+    std::cout<<"rxMsg= "<<rxMsg<<std::endl;
     return rxMsg;
 }
 
@@ -39,10 +44,12 @@ void TrafficLight::waitForGreen()
     // FP.5b : add the implementation of the method waitForGreen, in which an infinite while-loop 
     // runs and repeatedly calls the receive function on the message queue. 
     // Once it receives TrafficLightPhase::green, the method returns.
+    std::cout<<"TrafficLight::waitForGreen()"<<std::endl;
     while(true)
     {
         TrafficLightPhase currentPhase = msg_queue.receive();
-        if(currentPhase == green){return;}
+        
+        if(currentPhase == green){std::cout<<"currentphase= green"<<std::endl; return;}
     }
 }
 
@@ -58,8 +65,10 @@ void TrafficLight::setCurrentPhase(TrafficLightPhase phase)
 
 void TrafficLight::simulate()
 {
+
     // FP.2b : Finally, the private method „cycleThroughPhases“ should be started in a thread when the public method „simulate“ is called.
     // To do this, use the thread queue in the base class. 
+    std::cout<<"TrafficLight::simulate()"<<std::endl;
     threads.emplace_back(std::thread(&TrafficLight::cycleThroughPhases,this));
 }
 
@@ -70,7 +79,7 @@ void TrafficLight::cycleThroughPhases()
     // and toggles the current phase of the traffic light between red and green and sends an update method 
     // to the message queue using move semantics. The cycle duration should be a random value between 4 and 6 seconds. 
     // Also, the while-loop should use std::this_thread::sleep_for to wait 1ms between two cycles. 
-
+    std::cout<<"TrafficLight::cycleThroughPhases()"<<std::endl;
     std::random_device seed;
     std::mt19937 gen(seed());
     std::uniform_int_distribution<> dist(4000, 6000);
@@ -84,19 +93,17 @@ void TrafficLight::cycleThroughPhases()
             setCurrentPhase(green);
             std::cout<<"Green light"<<std::endl;
         }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1)); 
-
-         if (_currentPhase == green)
-        {
-           
+        else  if (_currentPhase == green)
+            {
             
-            std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::milliseconds(dist(gen))); 
-            setCurrentPhase(red);
-            std::cout<<"Red Light"<<std::endl;
-        }
+                
+                std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::milliseconds(dist(gen))); 
+                setCurrentPhase(red);
+                std::cout<<"Red Light"<<std::endl;
+            }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
         msg_queue.send(std::move(getCurrentPhase()));
-        std::cout<<"cycle through lights "<<std::endl;
+        
     }
 }
 
